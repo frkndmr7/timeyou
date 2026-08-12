@@ -1,0 +1,13 @@
+[project]
+name = "time-and-you-focus-service"
+version = "0.1.0"
+description = "Focus session service for Time&You"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115,<1.0",
+    "pydantic>=2.9,<3.0",
+    "uvicorn[standard]>=0.30,<1.0",
+]
+
+[tool.uv]
+package = false
