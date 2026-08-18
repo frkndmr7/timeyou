@@ -1,6 +1,25 @@
+import os
+
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api.routes import router as session_router
+from app.api.internal_routes import router as internal_router
 
 app = FastAPI(title="Time&You Focus Service", version="0.1.0")
+cors_origin = os.getenv("CORS_ORIGIN")
+if not cors_origin:
+    raise RuntimeError("CORS_ORIGIN environment variable is required.")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[cors_origin],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.include_router(session_router)
+app.include_router(internal_router)
 
 
 @app.get("/")

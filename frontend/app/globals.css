@@ -18,3 +18,125 @@ main {
   margin: 0 auto;
   padding: 6rem 1.5rem;
 }
+
+h1, h2, p {
+  margin-top: 0;
+}
+
+button, input {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  border-radius: 0.4rem;
+  background: #1f2937;
+  color: white;
+  cursor: pointer;
+  padding: 0.6rem 0.9rem;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.secondary {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.dashboard {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.form-stack, label {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.form-stack {
+  gap: 1rem;
+}
+
+input {
+  border: 1px solid #d1d5db;
+  border-radius: 0.4rem;
+  padding: 0.6rem;
+}
+
+.button-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.timer-card {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.timer {
+  font-size: 3rem;
+  letter-spacing: 0.05em;
+}
+
+.eyebrow, .muted, small {
+  color: #6b7280;
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+}
+
+.error {
+  color: #b91c1c;
+}
+
+.metric-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.metric-grid span, .session-list li span:first-child {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.session-list {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.session-list li {
+  align-items: center;
+  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 0.75rem;
+}
+
+.status {
+  border-radius: 999px;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  text-transform: capitalize;
+}
+
+.status-completed { background: #dcfce7; color: #166534; }
+.status-cancelled { background: #fee2e2; color: #991b1b; }
+.status-pending, .status-running { background: #fef3c7; color: #92400e; }

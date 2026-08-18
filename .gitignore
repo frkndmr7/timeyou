@@ -33,6 +33,7 @@ ENV/
 .env.*
 !.env.example
 !.env.sample
+!.env.compose.example
 *.pem
 *.key
 

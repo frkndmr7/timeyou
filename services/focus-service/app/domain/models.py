@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class SessionStatus(StrEnum):
+    PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
@@ -18,7 +19,7 @@ class FocusSession(BaseModel):
     user_id: str = Field(min_length=1)
     topic: str = Field(min_length=1)
     planned_duration: int = Field(ge=0)
-    started_at: datetime
+    started_at: datetime | None = None
     completed_at: datetime | None = None
     status: SessionStatus
     created_at: datetime
