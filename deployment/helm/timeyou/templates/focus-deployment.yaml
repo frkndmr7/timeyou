@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "timeyou.fullname" . }}-focus
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "timeyou.labels" . | nindent 4 }}
+    app.kubernetes.io/component: focus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "timeyou.name" . }}
+      app.kubernetes.io/component: focus
+  template:
+    metadata:
+      labels:
+        {{- include "timeyou.labels" . | nindent 8 }}
+        app.kubernetes.io/component: focus
+    spec:
+      containers:
+        - name: focus
+          image: "{{ .Values.images.focus.repository }}:{{ .Values.images.focus.tag }}"
+          imagePullPolicy: {{ .Values.images.focus.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.focus.service.port }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "timeyou.fullname" . }}-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret.name }}
+                  key: {{ .Values.existingSecret.databaseUrlKey }}
+            - name: FOCUS_INTERNAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret.name }}
+                  key: {{ .Values.existingSecret.internalApiKeyKey }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.focus.resources | nindent 12 }}
