@@ -67,3 +67,8 @@ output "postgres_master_user_secret_arn" {
   description = "AWS Secrets Manager ARN managed by RDS for the PostgreSQL master credentials."
   value       = aws_db_instance.postgres.master_user_secret[0].secret_arn
 }
+
+output "github_actions_ecr_role_arn" {
+  description = "IAM role ARN for the source repository GitHub Actions ECR push workflow."
+  value       = aws_iam_role.github_actions_ecr.arn
+}

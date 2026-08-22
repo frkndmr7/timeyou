@@ -54,3 +54,15 @@ variable "database_username" {
   type        = string
   default     = "timeyou_app"
 }
+
+variable "github_repository" {
+  description = "GitHub source repository allowed to assume the ECR push role."
+  type        = string
+  default     = "frkndmr7/timeyou"
+}
+
+variable "github_branch" {
+  description = "GitHub branch allowed to assume the ECR push role."
+  type        = string
+  default     = "main"
+}
