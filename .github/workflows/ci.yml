@@ -134,11 +134,120 @@ jobs:
           push: true
           tags: ${{ steps.login-ecr.outputs.registry }}/timeyou-analytics:${{ github.sha }}
 
-      - name: Verify pushed image references
+      - name: Resolve pushed image digests
+        id: image-digests
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          aws ecr describe-images --repository-name timeyou-frontend --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text
-          aws ecr describe-images --repository-name timeyou-focus --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text
-          aws ecr describe-images --repository-name timeyou-analytics --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text
+          frontend_digest="$(aws ecr describe-images --repository-name timeyou-frontend --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text)"
+          focus_digest="$(aws ecr describe-images --repository-name timeyou-focus --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text)"
+          analytics_digest="$(aws ecr describe-images --repository-name timeyou-analytics --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text)"
+
+          test "$frontend_digest" != "None"
+          test "$focus_digest" != "None"
+          test "$analytics_digest" != "None"
+
+          echo "frontend=$frontend_digest" >> "$GITHUB_OUTPUT"
+          echo "focus=$focus_digest" >> "$GITHUB_OUTPUT"
+          echo "analytics=$analytics_digest" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitOps App token
+        id: gitops-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.GITOPS_APP_ID }}
+          private-key: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ vars.GITOPS_REPOSITORY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Checkout GitOps repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.GITOPS_REPOSITORY }}
+          ref: main
+          token: ${{ steps.gitops-token.outputs.token }}
+          path: gitops
+          persist-credentials: false
+
+      - name: Update dev image digests and open PR
+        env:
+          GH_TOKEN: ${{ steps.gitops-token.outputs.token }}
+          GITOPS_REPOSITORY: ${{ vars.GITOPS_REPOSITORY }}
+          FRONTEND_DIGEST: ${{ steps.image-digests.outputs.frontend }}
+          FOCUS_DIGEST: ${{ steps.image-digests.outputs.focus }}
+          ANALYTICS_DIGEST: ${{ steps.image-digests.outputs.analytics }}
+        run: |
+          set -euo pipefail
+
+          short_sha="${GITHUB_SHA:0:12}"
+          branch="ci/update-dev-images-${short_sha}"
+          commit_message="Update dev image digests for ${short_sha}"
+          pr_title="Update dev images for ${short_sha}"
+          values_file="gitops/environments/dev/values.yaml"
+
+          gh auth setup-git
+          if git -C gitops ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            git -C gitops fetch origin "$branch"
+            git -C gitops checkout -B "$branch" "origin/$branch"
+          else
+            git -C gitops checkout -B "$branch" origin/main
+          fi
+
+          VALUES_FILE="$values_file" \
+          FRONTEND_DIGEST="$FRONTEND_DIGEST" \
+          FOCUS_DIGEST="$FOCUS_DIGEST" \
+          ANALYTICS_DIGEST="$ANALYTICS_DIGEST" \
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          path = Path(os.environ["VALUES_FILE"])
+          original = path.read_text()
+          updated = original
+
+          replacements = {
+              "frontend": os.environ["FRONTEND_DIGEST"],
+              "focus": os.environ["FOCUS_DIGEST"],
+              "analytics": os.environ["ANALYTICS_DIGEST"],
+          }
+
+          for image_name, digest in replacements.items():
+              pattern = rf"(?ms)(^  {image_name}:\n(?:    .*\n)*?^    digest: )sha256:[0-9a-f]+$"
+              updated, count = re.subn(pattern, rf"\g<1>{digest}", updated)
+              if count != 1:
+                  raise SystemExit(f"Expected exactly one {image_name} digest field")
+
+          path.write_text(updated)
+          PY
+
+          if git -C gitops diff --quiet -- environments/dev/values.yaml; then
+            echo "Dev image digests are already up to date; no PR needed."
+            exit 0
+          fi
+
+          diff="$(git -C gitops diff --unified=0 -- environments/dev/values.yaml)"
+          changed_lines="$(printf '%s\n' "$diff" | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' || true)"
+          changed_count="$(printf '%s\n' "$changed_lines" | sed '/^$/d' | wc -l | tr -d ' ')"
+          test "$changed_count" -eq 6
+          if printf '%s\n' "$changed_lines" | grep -Ev '^[-+]    digest: sha256:[0-9a-f]+$' >/dev/null; then
+            echo "Unexpected non-digest change in environments/dev/values.yaml" >&2
+            exit 1
+          fi
+
+          git -C gitops diff --check
+          git -C gitops config user.name "timeyou-gitops-updater[bot]"
+          git -C gitops config user.email "timeyou-gitops-updater[bot]@users.noreply.github.com"
+          git -C gitops add environments/dev/values.yaml
+          git -C gitops commit -m "$commit_message"
+          git -C gitops push --set-upstream origin "$branch"
+
+          existing_pr="$(gh pr list --repo "$GITOPS_REPOSITORY" --state open --head "$branch" --json number --jq '.[0].number // empty')"
+          if [ -n "$existing_pr" ]; then
+            gh pr edit "$existing_pr" --repo "$GITOPS_REPOSITORY" --title "$pr_title" --body "Automated dev image digest update for ${GITHUB_SHA}."
+          else
+            gh pr create --repo "$GITOPS_REPOSITORY" --base main --head "$branch" --title "$pr_title" --body "Automated dev image digest update for ${GITHUB_SHA}."
+          fi
