@@ -202,12 +202,11 @@ jobs:
           ANALYTICS_DIGEST="$ANALYTICS_DIGEST" \
           python3 - <<'PY'
           import os
-          import re
           from pathlib import Path
 
           path = Path(os.environ["VALUES_FILE"])
-          original = path.read_text()
-          updated = original
+          lines = path.read_text().splitlines(keepends=True)
+          original = list(lines)
 
           replacements = {
               "frontend": os.environ["FRONTEND_DIGEST"],
@@ -215,13 +214,56 @@ jobs:
               "analytics": os.environ["ANALYTICS_DIGEST"],
           }
 
-          for image_name, digest in replacements.items():
-              pattern = rf"(?ms)(^  {image_name}:\n(?:    .*\n)*?^    digest: )sha256:[0-9a-f]+$"
-              updated, count = re.subn(pattern, rf"\g<1>{digest}", updated)
-              if count != 1:
-                  raise SystemExit(f"Expected exactly one {image_name} digest field")
+          def is_digest(value):
+              return value.startswith("sha256:") and len(value) == 71 and all(
+                  character in "0123456789abcdef" for character in value[7:]
+              )
 
-          path.write_text(updated)
+          in_images = False
+          current_image = None
+          digest_indexes = {}
+
+          for index, line in enumerate(lines):
+              content = line.rstrip("\r\n")
+
+              if content == "images:":
+                  in_images = True
+                  current_image = None
+                  continue
+
+              if not in_images:
+                  continue
+
+              if content and not content.startswith(" "):
+                  in_images = False
+                  current_image = None
+                  continue
+
+              if line.startswith("  ") and not line.startswith("    ") and content.endswith(":"):
+                  image_name = content[2:-1]
+                  current_image = image_name if image_name in replacements else None
+                  continue
+
+              if current_image and line.startswith("    digest: "):
+                  if current_image in digest_indexes:
+                      raise SystemExit(f"Duplicate {current_image} digest field")
+                  current_digest = content.removeprefix("    digest: ")
+                  if not is_digest(current_digest):
+                      raise SystemExit(f"Invalid {current_image} digest field")
+                  digest_indexes[current_image] = index
+                  lines[index] = f"    digest: {replacements[current_image]}\n"
+
+          if set(digest_indexes) != set(replacements):
+              missing = sorted(set(replacements) - set(digest_indexes))
+              raise SystemExit(f"Expected exactly one digest field for each image; missing: {missing}")
+
+          changed_indexes = {
+              index for index, (before, after) in enumerate(zip(original, lines)) if before != after
+          }
+          if changed_indexes != set(digest_indexes.values()):
+              raise SystemExit("Unexpected non-digest change in environments/dev/values.yaml")
+
+          path.write_text("".join(lines))
           PY
 
           if git -C gitops diff --quiet -- environments/dev/values.yaml; then
