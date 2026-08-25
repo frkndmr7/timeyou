@@ -84,7 +84,7 @@ data "aws_iam_policy_document" "github_actions_ecr_assume_role" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository}:ref:refs/heads/${var.github_branch}"]
+      values   = ["repo:frkndmr7@101652130/timeyou@1342728062:ref:refs/heads/${var.github_branch}"]
     }
   }
 }
@@ -106,7 +106,9 @@ data "aws_iam_policy_document" "github_actions_ecr_push" {
 
     actions = [
       "ecr:BatchCheckLayerAvailability",
+      "ecr:BatchGetImage",
       "ecr:CompleteLayerUpload",
+      "ecr:DescribeImages",
       "ecr:InitiateLayerUpload",
       "ecr:PutImage",
       "ecr:UploadLayerPart",
