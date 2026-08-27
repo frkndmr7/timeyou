@@ -30,7 +30,7 @@ variable "cluster_name" {
 variable "eks_version" {
   description = "Kubernetes version for the EKS control plane and managed node group."
   type        = string
-  default     = "1.33"
+  default     = "1.34"
 }
 
 variable "cluster_public_access_cidrs" {
