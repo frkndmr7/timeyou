@@ -92,3 +92,9 @@ resource "aws_cognito_user_pool_domain" "main" {
   user_pool_id          = aws_cognito_user_pool.main.id
   managed_login_version = 2
 }
+
+resource "aws_cognito_managed_login_branding" "timeyou" {
+  user_pool_id                = aws_cognito_user_pool.main.id
+  client_id                   = aws_cognito_user_pool_client.timeyou.id
+  use_cognito_provided_values = true
+}
