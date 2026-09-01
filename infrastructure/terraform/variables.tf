@@ -4,6 +4,17 @@ variable "aws_region" {
   default     = "eu-central-1"
 }
 
+variable "allowed_aws_account_id" {
+  description = "Explicit AWS account ID allowed for Terraform operations in this working copy."
+  type        = string
+  nullable    = false
+
+  validation {
+    condition     = can(regex("^[0-9]{12}$", var.allowed_aws_account_id))
+    error_message = "allowed_aws_account_id must be a 12-digit AWS account ID."
+  }
+}
+
 variable "vpc_cidr" {
   description = "CIDR block for the learning VPC."
   type        = string
@@ -30,7 +41,7 @@ variable "cluster_name" {
 variable "eks_version" {
   description = "Kubernetes version for the EKS control plane and managed node group."
   type        = string
-  default     = "1.34"
+  default     = "1.36"
 }
 
 variable "cluster_public_access_cidrs" {
@@ -65,4 +76,33 @@ variable "github_branch" {
   description = "GitHub branch allowed to assume the ECR push role."
   type        = string
   default     = "main"
+}
+
+variable "cognito_user_pool_name" {
+  description = "Name for the Time&You Cognito User Pool."
+  type        = string
+  default     = "timeyou"
+}
+
+variable "cognito_domain_prefix" {
+  description = "Unique Cognito managed login domain prefix for this AWS account and region."
+  type        = string
+  nullable    = false
+
+  validation {
+    condition     = can(regex("^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$", var.cognito_domain_prefix))
+    error_message = "cognito_domain_prefix must be 1-63 lowercase letters, numbers, or hyphens and cannot start or end with a hyphen."
+  }
+}
+
+variable "cognito_callback_urls" {
+  description = "Allowed OAuth callback URLs for the public Cognito app client."
+  type        = list(string)
+  default     = ["http://localhost:3001/auth/callback"]
+}
+
+variable "cognito_logout_urls" {
+  description = "Allowed logout URLs for the public Cognito app client."
+  type        = list(string)
+  default     = ["http://localhost:3001"]
 }

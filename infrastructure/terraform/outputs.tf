@@ -72,3 +72,23 @@ output "github_actions_ecr_role_arn" {
   description = "IAM role ARN for the source repository GitHub Actions ECR push workflow."
   value       = aws_iam_role.github_actions_ecr.arn
 }
+
+output "cognito_user_pool_id" {
+  description = "ID of the Time&You Cognito User Pool."
+  value       = aws_cognito_user_pool.main.id
+}
+
+output "cognito_issuer_url" {
+  description = "JWT issuer URL for the Time&You Cognito User Pool."
+  value       = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.main.id}"
+}
+
+output "cognito_app_client_id" {
+  description = "Public OAuth app client ID for Time&You."
+  value       = aws_cognito_user_pool_client.timeyou.id
+}
+
+output "cognito_managed_login_url" {
+  description = "Base URL for the Cognito managed login domain."
+  value       = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.aws_region}.amazoncognito.com"
+}
