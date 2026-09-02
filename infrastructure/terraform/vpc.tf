@@ -25,8 +25,9 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "${var.cluster_name}-public-${count.index + 1}"
-    Type = "public"
+    Name                     = "${var.cluster_name}-public-${count.index + 1}"
+    Type                     = "public"
+    "kubernetes.io/role/elb" = "1"
   }
 }
 
@@ -38,8 +39,9 @@ resource "aws_subnet" "private" {
   cidr_block        = ["10.0.128.0/20", "10.0.144.0/20"][count.index]
 
   tags = {
-    Name = "${var.cluster_name}-private-${count.index + 1}"
-    Type = "private"
+    Name                              = "${var.cluster_name}-private-${count.index + 1}"
+    Type                              = "private"
+    "kubernetes.io/role/internal-elb" = "1"
   }
 }
 

@@ -73,6 +73,11 @@ output "github_actions_ecr_role_arn" {
   value       = aws_iam_role.github_actions_ecr.arn
 }
 
+output "aws_load_balancer_controller_role_arn" {
+  description = "IRSA role ARN for the AWS Load Balancer Controller service account."
+  value       = aws_iam_role.aws_load_balancer_controller.arn
+}
+
 output "cognito_user_pool_id" {
   description = "ID of the Time&You Cognito User Pool."
   value       = aws_cognito_user_pool.main.id
