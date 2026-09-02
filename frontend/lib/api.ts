@@ -1,13 +1,7 @@
 "use client";
 
 import { getAccessToken } from "./auth";
-
-function requiredBaseUrl(value: string | undefined, name: string): string {
-  if (!value) {
-    throw new Error(`${name} is required.`);
-  }
-  return value.replace(/\/$/, "");
-}
+import { getRuntimeConfig } from "./runtime-config";
 
 async function authenticatedRequest(
   baseUrl: string,
@@ -29,10 +23,7 @@ export function apiRequest(
   path: string,
   init: RequestInit = {},
 ): Promise<Response> {
-  const baseUrl = requiredBaseUrl(
-    process.env.NEXT_PUBLIC_API_BASE_URL,
-    "NEXT_PUBLIC_API_BASE_URL",
-  );
+  const baseUrl = getRuntimeConfig().apiBaseUrl.replace(/\/$/, "");
   return authenticatedRequest(baseUrl, path, init);
 }
 
@@ -40,9 +31,6 @@ export function analyticsRequest(
   path: string,
   init: RequestInit = {},
 ): Promise<Response> {
-  const baseUrl = requiredBaseUrl(
-    process.env.NEXT_PUBLIC_ANALYTICS_API_BASE_URL,
-    "NEXT_PUBLIC_ANALYTICS_API_BASE_URL",
-  );
+  const baseUrl = getRuntimeConfig().analyticsApiBaseUrl.replace(/\/$/, "");
   return authenticatedRequest(baseUrl, path, init);
 }

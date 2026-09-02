@@ -5,22 +5,9 @@ import {
   UserManager,
   WebStorageStateStore,
 } from "oidc-client-ts";
+import { getRuntimeConfig } from "./runtime-config";
 
 let userManager: UserManager | undefined;
-
-const cognitoEnvironment = {
-  issuer: process.env.NEXT_PUBLIC_COGNITO_ISSUER,
-  clientId: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID,
-  redirectUri: process.env.NEXT_PUBLIC_COGNITO_REDIRECT_URI,
-  logoutUri: process.env.NEXT_PUBLIC_COGNITO_LOGOUT_URI,
-};
-
-function requiredEnvironment(value: string | undefined, name: string): string {
-  if (!value) {
-    throw new Error(`${name} is required for Cognito authentication.`);
-  }
-  return value;
-}
 
 function getUserManager(): UserManager {
   if (typeof window === "undefined") {
@@ -28,23 +15,12 @@ function getUserManager(): UserManager {
   }
 
   if (!userManager) {
+    const config = getRuntimeConfig();
     userManager = new UserManager({
-      authority: requiredEnvironment(
-        cognitoEnvironment.issuer,
-        "NEXT_PUBLIC_COGNITO_ISSUER",
-      ),
-      client_id: requiredEnvironment(
-        cognitoEnvironment.clientId,
-        "NEXT_PUBLIC_COGNITO_CLIENT_ID",
-      ),
-      redirect_uri: requiredEnvironment(
-        cognitoEnvironment.redirectUri,
-        "NEXT_PUBLIC_COGNITO_REDIRECT_URI",
-      ),
-      post_logout_redirect_uri: requiredEnvironment(
-        cognitoEnvironment.logoutUri,
-        "NEXT_PUBLIC_COGNITO_LOGOUT_URI",
-      ),
+      authority: config.cognitoIssuer,
+      client_id: config.cognitoClientId,
+      redirect_uri: config.cognitoRedirectUri,
+      post_logout_redirect_uri: config.cognitoLogoutUri,
       response_type: "code",
       scope: "openid",
       stateStore: new WebStorageStateStore({
