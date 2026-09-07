@@ -6,9 +6,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/frkndmr7/timeyou-gitops.git
+    repoURL: https://github.com/frkndmr7/timeyou.git
     targetRevision: main
-    path: charts/timeyou
+    path: deploy/charts/timeyou
     helm:
       valueFiles:
         - ../../environments/staging/values.yaml
