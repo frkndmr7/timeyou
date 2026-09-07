@@ -12,15 +12,15 @@ ingress:
 images:
   frontend:
     repository: 109678733855.dkr.ecr.eu-west-1.amazonaws.com/timeyou-frontend
-    digest: sha256:c31d5c20866860a957882a077ee935bbd0c3bac1bf9b3e6cde6579d020ab3dc8
+    digest: sha256:0f5145fb31589033c9c6b0449e826f07481c803de43a53542db71a6a4f8deda8
     pullPolicy: IfNotPresent
   focus:
     repository: 109678733855.dkr.ecr.eu-west-1.amazonaws.com/timeyou-focus
-    digest: sha256:d5022aded454bc4da06449ebef56d1a08ea7d84cb92ef6f0e2a1eecc93044215
+    digest: sha256:4537ebd5486fd17533ba205393a4dac8ef359be214943587e0598fcead76c5d0
     pullPolicy: IfNotPresent
   analytics:
     repository: 109678733855.dkr.ecr.eu-west-1.amazonaws.com/timeyou-analytics
-    digest: sha256:2ea73b8872630bd48205e5600dd22638e11ab0f9dbc4b78236a3591d2e33545a
+    digest: sha256:6ec30f85993b4990d0c8ac90a7f40553b882446620b683647ac348874d878e0f
     pullPolicy: IfNotPresent
 
 cognito:
