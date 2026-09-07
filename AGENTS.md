@@ -76,18 +76,22 @@ time&you/
 │   └── analytics-service/
 ├── infrastructure/
 │   └── terraform/
-├── deployment/
-│   └── helm/
+├── deploy/
+│   ├── argocd/
+│   ├── charts/
+│   │   └── timeyou/
+│   └── environments/
+│       ├── dev/
+│       ├── staging/
+│       └── prod/
 ├── docker-compose.yml
 ├── README.md
 └── AGENTS.md
 
 
-İlerleyen aşamada ayrı bir GitOps repository oluşturulacaktır:
-
-time&you-gitops/
-
-Application repository source code'u, GitOps repository ise Kubernetes'in desired state'ini içerir.
+Kubernetes desired state bu repository'deki `deploy/` altında tutulur. CI yalnızca
+`deploy/environments/dev/values.yaml` için image digest güncelleme PR'ı açar;
+staging ve prod promotion'ları kontrollü aynı-repository PR'larıyla yapılır.
 
 ---
 
