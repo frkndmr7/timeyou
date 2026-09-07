@@ -30,9 +30,9 @@ resource "aws_eks_node_group" "main" {
   version        = var.eks_version
 
   scaling_config {
-    desired_size = 2
-    min_size     = 2
-    max_size     = 2
+    desired_size = 3
+    min_size     = 3
+    max_size     = 3
   }
 
   update_config {
