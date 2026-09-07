@@ -1,0 +1,41 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "timeyou.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "timeyou.labels" . | nindent 4 }}
+  annotations:
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    alb.ingress.kubernetes.io/transforms.{{ include "timeyou.fullname" . }}-focus: >-
+      [{"type":"url-rewrite","urlRewriteConfig":{"rewrites":[{"regex":"^/focus/?(.*)$","replace":"/$1"}]}}]
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - http:
+        paths:
+          - path: /focus
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "timeyou.fullname" . }}-focus
+                port:
+                  name: http
+          - path: /analytics
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "timeyou.fullname" . }}-analytics
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "timeyou.fullname" . }}-frontend
+                port:
+                  name: http
+{{- end }}

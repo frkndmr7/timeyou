@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: timeyou-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/frkndmr7/timeyou-gitops.git
+    targetRevision: main
+    path: charts/timeyou
+    helm:
+      valueFiles:
+        - ../../environments/prod/values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: timeyou-prod
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=false
