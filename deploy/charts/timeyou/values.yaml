@@ -1,0 +1,76 @@
+namespace: timeyou
+
+ingress:
+  enabled: false
+  className: alb
+  annotations: {}
+
+images:
+  frontend:
+    repository: 556314888256.dkr.ecr.eu-central-1.amazonaws.com/timeyou-frontend
+    tag: local-mvp
+    digest: ""
+    pullPolicy: IfNotPresent
+  focus:
+    repository: 556314888256.dkr.ecr.eu-central-1.amazonaws.com/timeyou-focus
+    tag: local-mvp
+    digest: ""
+    pullPolicy: IfNotPresent
+  analytics:
+    repository: 556314888256.dkr.ecr.eu-central-1.amazonaws.com/timeyou-analytics
+    tag: local-mvp
+    digest: ""
+    pullPolicy: IfNotPresent
+
+cognito:
+  region: eu-central-1
+  userPoolId: eu-central-1_9JNTEQ1tz
+  appClientId: 2r559a7n9pkq9vndanneal8p54
+  issuer: https://cognito-idp.eu-central-1.amazonaws.com/eu-central-1_9JNTEQ1tz
+  redirectUri: http://localhost:3001/auth/callback
+  logoutUri: http://localhost:3001
+
+frontend:
+  apiBaseUrl: http://localhost:8000
+  analyticsApiBaseUrl: http://localhost:8001
+  service:
+    port: 3000
+    annotations: {}
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 512Mi
+
+focus:
+  service:
+    port: 8000
+    annotations: {}
+  corsOrigin: http://localhost:3001
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+analytics:
+  service:
+    port: 8001
+    annotations: {}
+  corsOrigin: http://localhost:3001
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+existingSecret:
+  name: timeyou-runtime
+  databaseUrlKey: DATABASE_URL
+  internalApiKeyKey: FOCUS_INTERNAL_API_KEY

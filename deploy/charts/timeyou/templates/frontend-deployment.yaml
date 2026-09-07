@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "timeyou.fullname" . }}-frontend
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "timeyou.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "timeyou.name" . }}
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      labels:
+        {{- include "timeyou.labels" . | nindent 8 }}
+        app.kubernetes.io/component: frontend
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: frontend
+          image: "{{ include "timeyou.image" .Values.images.frontend }}"
+          imagePullPolicy: {{ .Values.images.frontend.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.frontend.service.port }}
+          env:
+            - name: NEXT_PUBLIC_COGNITO_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "timeyou.fullname" . }}-config
+                  key: NEXT_PUBLIC_COGNITO_ISSUER
+            - name: NEXT_PUBLIC_COGNITO_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "timeyou.fullname" . }}-config
+                  key: NEXT_PUBLIC_COGNITO_CLIENT_ID
+            - name: NEXT_PUBLIC_COGNITO_REDIRECT_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "timeyou.fullname" . }}-config
+                  key: NEXT_PUBLIC_COGNITO_REDIRECT_URI
+            - name: NEXT_PUBLIC_COGNITO_LOGOUT_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "timeyou.fullname" . }}-config
+                  key: NEXT_PUBLIC_COGNITO_LOGOUT_URI
+            - name: NEXT_PUBLIC_API_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "timeyou.fullname" . }}-config
+                  key: NEXT_PUBLIC_API_BASE_URL
+            - name: NEXT_PUBLIC_ANALYTICS_API_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "timeyou.fullname" . }}-config
+                  key: NEXT_PUBLIC_ANALYTICS_API_BASE_URL
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
