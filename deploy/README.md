@@ -10,11 +10,11 @@ The promotion model is based on one immutable artifact:
 
 1. CI builds the frontend, focus, and analytics images once for a source commit.
 2. CI pushes the images to ECR using the immutable Git SHA tag.
-3. CI updates only the image digests in `environments/dev/values.yaml` through a GitOps pull request.
+3. CI updates only the image digests in `deploy/environments/dev/values.yaml` through a pull request in this repository.
 4. Dev is deployed and verified.
 5. Staging promotion does not rebuild any image.
-6. The verified frontend, focus, and analytics `repository@digest` values are copied unchanged from `environments/dev/values.yaml` to `environments/staging/values.yaml`.
-7. The staging digest change is reviewed and merged as a separate, controlled GitOps pull request.
+6. The verified frontend, focus, and analytics `repository@digest` values are copied unchanged from `deploy/environments/dev/values.yaml` to `deploy/environments/staging/values.yaml`.
+7. The staging digest change is reviewed and merged as a separate, controlled pull request.
 8. After merge, staging is deployed with a manual Argo CD sync.
 9. Staging smoke and end-to-end tests are run.
 

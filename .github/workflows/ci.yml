@@ -79,7 +79,8 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
+      pull-requests: write
       id-token: write
 
     steps:
@@ -155,30 +156,9 @@ jobs:
           echo "focus=$focus_digest" >> "$GITHUB_OUTPUT"
           echo "analytics=$analytics_digest" >> "$GITHUB_OUTPUT"
 
-      - name: Create GitOps App token
-        id: gitops-token
-        uses: actions/create-github-app-token@v3
-        with:
-          app-id: ${{ vars.GITOPS_APP_ID }}
-          private-key: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ vars.GITOPS_REPOSITORY }}
-          permission-contents: write
-          permission-pull-requests: write
-
-      - name: Checkout GitOps repository
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ vars.GITOPS_REPOSITORY }}
-          ref: main
-          token: ${{ steps.gitops-token.outputs.token }}
-          path: gitops
-          persist-credentials: false
-
       - name: Update dev image digests and open PR
         env:
-          GH_TOKEN: ${{ steps.gitops-token.outputs.token }}
-          GITOPS_REPOSITORY: ${{ vars.GITOPS_REPOSITORY }}
+          GH_TOKEN: ${{ github.token }}
           FRONTEND_DIGEST: ${{ steps.image-digests.outputs.frontend }}
           FOCUS_DIGEST: ${{ steps.image-digests.outputs.focus }}
           ANALYTICS_DIGEST: ${{ steps.image-digests.outputs.analytics }}
@@ -189,14 +169,14 @@ jobs:
           branch="ci/update-dev-images-${short_sha}"
           commit_message="Update dev image digests for ${short_sha}"
           pr_title="Update dev images for ${short_sha}"
-          values_file="gitops/environments/dev/values.yaml"
+          values_file="deploy/environments/dev/values.yaml"
 
           gh auth setup-git
-          if git -C gitops ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
-            git -C gitops fetch origin "$branch"
-            git -C gitops checkout -B "$branch" "origin/$branch"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            git fetch origin "$branch"
+            git checkout -B "$branch" "origin/$branch"
           else
-            git -C gitops checkout -B "$branch" origin/main
+            git checkout -B "$branch" origin/main
           fi
 
           VALUES_FILE="$values_file" \
@@ -269,30 +249,30 @@ jobs:
           path.write_text("".join(lines))
           PY
 
-          if git -C gitops diff --quiet -- environments/dev/values.yaml; then
+          if git diff --quiet -- "$values_file"; then
             echo "Dev image digests are already up to date; no PR needed."
             exit 0
           fi
 
-          diff="$(git -C gitops diff --unified=0 -- environments/dev/values.yaml)"
+          diff="$(git diff --unified=0 -- "$values_file")"
           changed_lines="$(printf '%s\n' "$diff" | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' || true)"
           changed_count="$(printf '%s\n' "$changed_lines" | sed '/^$/d' | wc -l | tr -d ' ')"
           test "$changed_count" -eq 6
           if printf '%s\n' "$changed_lines" | grep -Ev '^[-+]    digest: sha256:[0-9a-f]+$' >/dev/null; then
-            echo "Unexpected non-digest change in environments/dev/values.yaml" >&2
+            echo "Unexpected non-digest change in ${values_file}" >&2
             exit 1
           fi
 
-          git -C gitops diff --check
-          git -C gitops config user.name "timeyou-gitops-updater[bot]"
-          git -C gitops config user.email "timeyou-gitops-updater[bot]@users.noreply.github.com"
-          git -C gitops add environments/dev/values.yaml
-          git -C gitops commit -m "$commit_message"
-          git -C gitops push --set-upstream origin "$branch"
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$values_file"
+          git commit -m "$commit_message"
+          git push --set-upstream origin "$branch"
 
-          existing_pr="$(gh pr list --repo "$GITOPS_REPOSITORY" --state open --head "$branch" --json number --jq '.[0].number // empty')"
+          existing_pr="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --head "$branch" --json number --jq '.[0].number // empty')"
           if [ -n "$existing_pr" ]; then
-            gh pr edit "$existing_pr" --repo "$GITOPS_REPOSITORY" --title "$pr_title" --body "Automated dev image digest update for ${GITHUB_SHA}."
+            gh pr edit "$existing_pr" --repo "$GITHUB_REPOSITORY" --title "$pr_title" --body "Automated dev image digest update for ${GITHUB_SHA}."
           else
-            gh pr create --repo "$GITOPS_REPOSITORY" --base main --head "$branch" --title "$pr_title" --body "Automated dev image digest update for ${GITHUB_SHA}."
+            gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" --title "$pr_title" --body "Automated dev image digest update for ${GITHUB_SHA}."
           fi
