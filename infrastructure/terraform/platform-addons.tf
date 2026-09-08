@@ -44,3 +44,88 @@ resource "helm_release" "aws_load_balancer_controller" {
     }
   })]
 }
+
+resource "helm_release" "kube_prometheus_stack" {
+  name             = "kube-prometheus-stack"
+  namespace        = "monitoring"
+  repository       = "https://prometheus-community.github.io/helm-charts"
+  chart            = "kube-prometheus-stack"
+  version          = "88.6.3"
+  create_namespace = true
+  wait             = true
+  recreate_pods    = false
+  force_update     = false
+
+  values = [yamlencode({
+    alertmanager = {
+      enabled = false
+    }
+    grafana = {
+      enabled  = true
+      replicas = 1
+      resources = {
+        requests = {
+          cpu    = "100m"
+          memory = "256Mi"
+        }
+      }
+      persistence = {
+        enabled = false
+      }
+      ingress = {
+        enabled = false
+      }
+      service = {
+        type = "ClusterIP"
+      }
+    }
+    kubeStateMetrics = {
+      enabled = true
+    }
+    kube-state-metrics = {
+      resources = {
+        requests = {
+          cpu    = "50m"
+          memory = "128Mi"
+        }
+      }
+    }
+    nodeExporter = {
+      enabled = false
+    }
+    prometheusOperator = {
+      enabled = true
+      tls = {
+        enabled = false
+      }
+      resources = {
+        requests = {
+          cpu    = "50m"
+          memory = "100Mi"
+        }
+      }
+      admissionWebhooks = {
+        enabled = false
+        patch = {
+          enabled = false
+        }
+        certManager = {
+          enabled = false
+        }
+      }
+    }
+    prometheus = {
+      enabled = true
+      prometheusSpec = {
+        replicas  = 1
+        retention = "24h"
+        resources = {
+          requests = {
+            cpu    = "200m"
+            memory = "512Mi"
+          }
+        }
+      }
+    }
+  })]
+}
