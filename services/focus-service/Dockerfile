@@ -11,7 +11,8 @@ RUN pip install --no-cache-dir \
     "sqlalchemy>=2.0,<3.0" \
     "psycopg[binary]>=3.2,<4.0" \
     "alembic>=1.14,<2.0" \
-    "uvicorn[standard]>=0.30,<1.0"
+    "uvicorn[standard]>=0.30,<1.0" \
+    "prometheus-client>=0.20,<1.0"
 
 COPY alembic.ini ./
 COPY migrations ./migrations

@@ -40,12 +40,16 @@ frontend:
 
 focus:
   corsOrigin: http://k8s-timeyoud-timeyou-2dcc5ce42f-789434591.eu-west-1.elb.amazonaws.com
+  serviceMonitor:
+    enabled: true
   service:
     annotations:
       alb.ingress.kubernetes.io/healthcheck-path: /health
 
 analytics:
   corsOrigin: http://localhost:3001
+  serviceMonitor:
+    enabled: true
   service:
     annotations:
       alb.ingress.kubernetes.io/healthcheck-path: /health
