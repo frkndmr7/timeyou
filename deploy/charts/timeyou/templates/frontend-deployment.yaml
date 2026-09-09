@@ -48,6 +48,11 @@ spec:
                 configMapKeyRef:
                   name: {{ include "timeyou.fullname" . }}-config
                   key: NEXT_PUBLIC_COGNITO_LOGOUT_URI
+            - name: NEXT_PUBLIC_COGNITO_MANAGED_LOGIN_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "timeyou.fullname" . }}-config
+                  key: NEXT_PUBLIC_COGNITO_MANAGED_LOGIN_URL
             - name: NEXT_PUBLIC_API_BASE_URL
               valueFrom:
                 configMapKeyRef:

@@ -16,5 +16,6 @@ data:
   NEXT_PUBLIC_COGNITO_CLIENT_ID: {{ .Values.cognito.appClientId | quote }}
   NEXT_PUBLIC_COGNITO_REDIRECT_URI: {{ .Values.cognito.redirectUri | quote }}
   NEXT_PUBLIC_COGNITO_LOGOUT_URI: {{ .Values.cognito.logoutUri | quote }}
+  NEXT_PUBLIC_COGNITO_MANAGED_LOGIN_URL: {{ .Values.cognito.managedLoginUrl | default "" | quote }}
   NEXT_PUBLIC_API_BASE_URL: {{ .Values.frontend.apiBaseUrl | quote }}
   NEXT_PUBLIC_ANALYTICS_API_BASE_URL: {{ .Values.frontend.analyticsApiBaseUrl | quote }}

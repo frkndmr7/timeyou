@@ -3,6 +3,7 @@ export type RuntimeConfig = {
   cognitoClientId: string;
   cognitoRedirectUri: string;
   cognitoLogoutUri: string;
+  cognitoManagedLoginUrl: string;
   apiBaseUrl: string;
   analyticsApiBaseUrl: string;
 };
@@ -35,6 +36,7 @@ export function getRuntimeConfig(): RuntimeConfig {
     cognitoClientId: required(config.cognitoClientId, "cognitoClientId"),
     cognitoRedirectUri: required(config.cognitoRedirectUri, "cognitoRedirectUri"),
     cognitoLogoutUri: required(config.cognitoLogoutUri, "cognitoLogoutUri"),
+    cognitoManagedLoginUrl: required(config.cognitoManagedLoginUrl, "cognitoManagedLoginUrl"),
     apiBaseUrl: required(config.apiBaseUrl, "apiBaseUrl"),
     analyticsApiBaseUrl: required(config.analyticsApiBaseUrl, "analyticsApiBaseUrl"),
   };

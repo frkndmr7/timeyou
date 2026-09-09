@@ -10,6 +10,7 @@ const values = {
   cognitoClientId: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID,
   cognitoRedirectUri: process.env.NEXT_PUBLIC_COGNITO_REDIRECT_URI,
   cognitoLogoutUri: process.env.NEXT_PUBLIC_COGNITO_LOGOUT_URI,
+  cognitoManagedLoginUrl: process.env.NEXT_PUBLIC_COGNITO_MANAGED_LOGIN_URL,
   apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
   analyticsApiBaseUrl: process.env.NEXT_PUBLIC_ANALYTICS_API_BASE_URL,
 };
