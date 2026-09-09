@@ -33,6 +33,7 @@ cognito:
   issuer: https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_ugZvDaE2i
   redirectUri: https://timeyou.co/auth/callback
   logoutUri: https://timeyou.co
+  managedLoginUrl: https://timeyou-new.auth.eu-west-1.amazoncognito.com
 
 frontend:
   apiBaseUrl: https://timeyou.co/focus

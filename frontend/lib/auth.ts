@@ -43,8 +43,14 @@ export function completeLogin(): Promise<User | undefined> {
   return getUserManager().signinCallback();
 }
 
-export function logout(): Promise<void> {
-  return getUserManager().signoutRedirect();
+export async function logout(): Promise<void> {
+  const config = getRuntimeConfig();
+  const logoutUrl = new URL("/logout", `${config.cognitoManagedLoginUrl.replace(/\/+$/, "")}/`);
+  logoutUrl.searchParams.set("client_id", config.cognitoClientId);
+  logoutUrl.searchParams.set("logout_uri", config.cognitoLogoutUri);
+
+  await getUserManager().removeUser();
+  window.location.assign(logoutUrl.toString());
 }
 
 export function getAuthenticatedUser(): Promise<User | null> {
