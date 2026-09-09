@@ -8,7 +8,8 @@ RUN pip install --no-cache-dir \
     "httpx>=0.27,<1.0" \
     "pydantic>=2.9,<3.0" \
     "PyJWT[crypto]>=2.9,<3.0" \
-    "uvicorn[standard]>=0.30,<1.0"
+    "uvicorn[standard]>=0.30,<1.0" \
+    "prometheus-client>=0.20,<1.0"
 
 COPY app ./app
 

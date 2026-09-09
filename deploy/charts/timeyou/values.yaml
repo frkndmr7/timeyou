@@ -48,6 +48,9 @@ focus:
   service:
     port: 8000
     annotations: {}
+  serviceMonitor:
+    enabled: false
+    interval: 30s
   corsOrigin: http://localhost:3001
   resources:
     requests:
@@ -61,6 +64,9 @@ analytics:
   service:
     port: 8001
     annotations: {}
+  serviceMonitor:
+    enabled: false
+    interval: 30s
   corsOrigin: http://localhost:3001
   resources:
     requests:
