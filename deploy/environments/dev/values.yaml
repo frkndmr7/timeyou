@@ -35,8 +35,8 @@ cognito:
   logoutUri: https://timeyou.co
 
 frontend:
-  apiBaseUrl: http://k8s-timeyoud-timeyou-2dcc5ce42f-789434591.eu-west-1.elb.amazonaws.com/focus
-  analyticsApiBaseUrl: http://k8s-timeyoud-timeyou-2dcc5ce42f-789434591.eu-west-1.elb.amazonaws.com
+  apiBaseUrl: https://timeyou.co/focus
+  analyticsApiBaseUrl: https://timeyou.co
   service:
     annotations:
       alb.ingress.kubernetes.io/healthcheck-path: /
