@@ -4,10 +4,13 @@ namespace: timeyou-dev
 ingress:
   enabled: true
   className: alb
+  host: timeyou.co
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-west-1:109678733855:certificate/7f76e82d-3a25-4e1f-b747-7fd422d67e3a
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
 
 images:
   frontend:
