@@ -31,8 +31,8 @@ cognito:
   userPoolId: eu-west-1_ugZvDaE2i
   appClientId: 2oruncf8gbi07qo3tto7auuent
   issuer: https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_ugZvDaE2i
-  redirectUri: http://localhost:3001/auth/callback
-  logoutUri: http://localhost:3001
+  redirectUri: https://timeyou.co/auth/callback
+  logoutUri: https://timeyou.co
 
 frontend:
   apiBaseUrl: http://k8s-timeyoud-timeyou-2dcc5ce42f-789434591.eu-west-1.elb.amazonaws.com/focus
