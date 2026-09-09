@@ -1,0 +1,105 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Request Rate",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi"}},
+      "targets": [{
+        "expr": "sum by (namespace, job) (rate(timeyou_http_requests_total{namespace=~\"$environment\",job=~\"$service\"}[5m]))",
+        "legendFormat": "{{namespace}} / {{job}}",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 2,
+      "title": "Error Rate (%)",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi"}},
+      "targets": [{
+        "expr": "100 * sum by (namespace, job) (rate(timeyou_http_requests_total{namespace=~\"$environment\",job=~\"$service\",status=~\"5..\"}[5m])) / sum by (namespace, job) (rate(timeyou_http_requests_total{namespace=~\"$environment\",job=~\"$service\"}[5m]))",
+        "legendFormat": "{{namespace}} / {{job}}",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 3,
+      "title": "p50 Request Latency",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi"}},
+      "targets": [{
+        "expr": "histogram_quantile(0.50, sum by (namespace, job, le) (rate(timeyou_http_request_duration_seconds_bucket{namespace=~\"$environment\",job=~\"$service\"}[5m])))",
+        "legendFormat": "{{namespace}} / {{job}}",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 4,
+      "title": "p95 Request Latency",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi"}},
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum by (namespace, job, le) (rate(timeyou_http_request_duration_seconds_bucket{namespace=~\"$environment\",job=~\"$service\"}[5m])))",
+        "legendFormat": "{{namespace}} / {{job}}",
+        "refId": "A"
+      }]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["timeyou", "application", "prometheus"],
+  "templating": {
+    "list": [
+      {
+        "name": "environment",
+        "label": "Environment",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "definition": "label_values(timeyou_http_requests_total{namespace=~\"timeyou-(dev|staging|prod)\"}, namespace)",
+        "query": {"query": "label_values(timeyou_http_requests_total{namespace=~\"timeyou-(dev|staging|prod)\"}, namespace)", "refId": "StandardVariableQuery"},
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 1,
+        "sort": 1,
+        "current": {"text": ["All"], "value": ["$__all"]}
+      },
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "definition": "label_values(timeyou_http_requests_total{namespace=~\"$environment\",job=~\"timeyou-(focus|analytics)\"}, job)",
+        "query": {"query": "label_values(timeyou_http_requests_total{namespace=~\"$environment\",job=~\"timeyou-(focus|analytics)\"}, job)", "refId": "StandardVariableQuery"},
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 1,
+        "sort": 1,
+        "current": {"text": ["All"], "value": ["$__all"]}
+      }
+    ]
+  },
+  "time": {"from": "now-6h", "to": "now"},
+  "timezone": "browser",
+  "title": "TimeYou / Application Overview",
+  "uid": "timeyou-application-overview",
+  "version": 1
+}

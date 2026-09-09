@@ -63,6 +63,29 @@ resource "helm_release" "kube_prometheus_stack" {
     grafana = {
       enabled  = true
       replicas = 1
+      dashboardProviders = {
+        "dashboardproviders.yaml" = {
+          apiVersion = 1
+          providers = [{
+            name            = "timeyou"
+            orgId           = 1
+            folder          = "TimeYou"
+            type            = "file"
+            disableDeletion = false
+            editable        = false
+            options = {
+              path = "/var/lib/grafana/dashboards/default"
+            }
+          }]
+        }
+      }
+      dashboards = {
+        default = {
+          timeyou-application-overview = {
+            json = file("${path.module}/dashboards/timeyou-application-overview.json")
+          }
+        }
+      }
       resources = {
         requests = {
           cpu    = "100m"
