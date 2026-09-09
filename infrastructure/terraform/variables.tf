@@ -98,11 +98,17 @@ variable "cognito_domain_prefix" {
 variable "cognito_callback_urls" {
   description = "Allowed OAuth callback URLs for the public Cognito app client."
   type        = list(string)
-  default     = ["http://localhost:3001/auth/callback"]
+  default = [
+    "http://localhost:3001/auth/callback",
+    "https://timeyou.co/auth/callback",
+  ]
 }
 
 variable "cognito_logout_urls" {
   description = "Allowed logout URLs for the public Cognito app client."
   type        = list(string)
-  default     = ["http://localhost:3001"]
+  default = [
+    "http://localhost:3001",
+    "https://timeyou.co",
+  ]
 }
