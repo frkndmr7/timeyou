@@ -4,7 +4,7 @@ resource "aws_route53_zone" "timeyou" {
 
 data "aws_lb" "timeyou_dev" {
   tags = {
-    "ingress.k8s.aws/stack" = "timeyou-dev/timeyou"
+    "ingress.k8s.aws/stack" = "timeyou-prod/timeyou"
   }
 }
 
