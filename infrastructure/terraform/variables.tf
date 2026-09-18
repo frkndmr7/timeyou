@@ -1,7 +1,7 @@
 variable "aws_region" {
   description = "AWS region for the Time&You resources."
   type        = string
-  default     = "eu-central-1"
+  default     = "eu-west-1"
 }
 
 variable "allowed_aws_account_id" {
@@ -24,7 +24,7 @@ variable "vpc_cidr" {
 variable "availability_zones" {
   description = "Two availability zones used by the learning VPC."
   type        = list(string)
-  default     = ["eu-central-1a", "eu-central-1b"]
+  default     = ["eu-west-1a", "eu-west-1b"]
 
   validation {
     condition     = length(var.availability_zones) == 2
