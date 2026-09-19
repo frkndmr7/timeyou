@@ -13,7 +13,11 @@ export function AnalyticsSummaryCard({ summary }: { summary: AnalyticsSummary })
         <span><small>This week</small><strong>{formatReadableDuration(summary.week_focus_seconds)}</strong></span>
         <span><small>Week sessions</small><strong>{summary.week_completed_sessions}</strong></span>
       </div>
-      <p className="muted">Top topic: {summary.top_topic ?? "—"}</p>
+      {summary.week_completed_sessions === 0 && summary.top_topic === null ? (
+        <p className="muted">Complete your first focus session to see your analytics here.</p>
+      ) : (
+        <p className="muted">Top topic: {summary.top_topic ?? "—"}</p>
+      )}
     </section>
   );
 }
