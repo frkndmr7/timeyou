@@ -88,21 +88,73 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed application components
+        id: components
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          frontend=false
+          focus=false
+          analytics=false
+
+          # If GitHub's before SHA is absent, invalid, or unavailable locally,
+          # build every known image rather than risk missing a deployment artifact.
+          if [[ ! "$BEFORE_SHA" =~ ^[0-9a-fA-F]{40}$ ]] || [[ "$BEFORE_SHA" =~ ^0{40}$ ]] || ! git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+            echo "Missing or unavailable push before SHA; selecting all application components."
+            frontend=true
+            focus=true
+            analytics=true
+          else
+            while IFS= read -r path; do
+              case "$path" in
+                frontend/*) frontend=true ;;
+                services/focus-service/*) focus=true ;;
+                services/analytics-service/*) analytics=true ;;
+                services/*)
+                  echo "Unmapped service path changed: $path; selecting all application components."
+                  frontend=true
+                  focus=true
+                  analytics=true
+                  ;;
+              esac
+            done < <(git diff --name-only "$BEFORE_SHA" "$CURRENT_SHA")
+          fi
+
+          any=false
+          if [[ "$frontend" == true || "$focus" == true || "$analytics" == true ]]; then
+            any=true
+          fi
+
+          echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
+          echo "focus=$focus" >> "$GITHUB_OUTPUT"
+          echo "analytics=$analytics" >> "$GITHUB_OUTPUT"
+          echo "any=$any" >> "$GITHUB_OUTPUT"
+          echo "Selected components: frontend=$frontend focus=$focus analytics=$analytics"
 
       - name: Set up Docker Buildx
+        if: steps.components.outputs.any == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Configure AWS credentials with OIDC
+        if: steps.components.outputs.any == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ vars.AWS_REGION }}
           role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
 
       - name: Login to Amazon ECR
+        if: steps.components.outputs.any == 'true'
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push frontend image
+        if: steps.components.outputs.frontend == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
@@ -121,6 +173,7 @@ jobs:
             NEXT_PUBLIC_COGNITO_REDIRECT_URI=${{ vars.NEXT_PUBLIC_COGNITO_REDIRECT_URI }}
 
       - name: Build and push Focus Service image
+        if: steps.components.outputs.focus == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./services/focus-service
@@ -131,6 +184,7 @@ jobs:
           tags: ${{ steps.login-ecr.outputs.registry }}/timeyou-focus:${{ github.sha }}
 
       - name: Build and push Analytics Service image
+        if: steps.components.outputs.analytics == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./services/analytics-service
@@ -141,26 +195,45 @@ jobs:
           tags: ${{ steps.login-ecr.outputs.registry }}/timeyou-analytics:${{ github.sha }}
 
       - name: Resolve pushed image digests
+        if: steps.components.outputs.any == 'true'
         id: image-digests
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
+          BUILD_FRONTEND: ${{ steps.components.outputs.frontend }}
+          BUILD_FOCUS: ${{ steps.components.outputs.focus }}
+          BUILD_ANALYTICS: ${{ steps.components.outputs.analytics }}
         run: |
-          frontend_digest="$(aws ecr describe-images --repository-name timeyou-frontend --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text)"
-          focus_digest="$(aws ecr describe-images --repository-name timeyou-focus --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text)"
-          analytics_digest="$(aws ecr describe-images --repository-name timeyou-analytics --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text)"
+          set -euo pipefail
 
-          test "$frontend_digest" != "None"
-          test "$focus_digest" != "None"
-          test "$analytics_digest" != "None"
+          lookup_digest() {
+            local component="$1"
+            local repository="$2"
+            local digest
+            digest="$(aws ecr describe-images --repository-name "$repository" --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text)"
+            if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+              echo "Missing or invalid ECR digest for $component ($repository:$IMAGE_TAG)." >&2
+              return 1
+            fi
+            echo "$component=$digest" >> "$GITHUB_OUTPUT"
+          }
 
-          echo "frontend=$frontend_digest" >> "$GITHUB_OUTPUT"
-          echo "focus=$focus_digest" >> "$GITHUB_OUTPUT"
-          echo "analytics=$analytics_digest" >> "$GITHUB_OUTPUT"
+          if [[ "$BUILD_FRONTEND" == true ]]; then
+            lookup_digest frontend timeyou-frontend
+          fi
+          if [[ "$BUILD_FOCUS" == true ]]; then
+            lookup_digest focus timeyou-focus
+          fi
+          if [[ "$BUILD_ANALYTICS" == true ]]; then
+            lookup_digest analytics timeyou-analytics
+          fi
 
       - name: Update dev image digests and open PR
+        if: steps.components.outputs.any == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          BUILD_FRONTEND: ${{ steps.components.outputs.frontend }}
+          BUILD_FOCUS: ${{ steps.components.outputs.focus }}
+          BUILD_ANALYTICS: ${{ steps.components.outputs.analytics }}
           FRONTEND_DIGEST: ${{ steps.image-digests.outputs.frontend }}
           FOCUS_DIGEST: ${{ steps.image-digests.outputs.focus }}
           ANALYTICS_DIGEST: ${{ steps.image-digests.outputs.analytics }}
@@ -182,6 +255,9 @@ jobs:
           fi
 
           VALUES_FILE="$values_file" \
+          BUILD_FRONTEND="$BUILD_FRONTEND" \
+          BUILD_FOCUS="$BUILD_FOCUS" \
+          BUILD_ANALYTICS="$BUILD_ANALYTICS" \
           FRONTEND_DIGEST="$FRONTEND_DIGEST" \
           FOCUS_DIGEST="$FOCUS_DIGEST" \
           ANALYTICS_DIGEST="$ANALYTICS_DIGEST" \
@@ -193,11 +269,20 @@ jobs:
           lines = path.read_text().splitlines(keepends=True)
           original = list(lines)
 
-          replacements = {
-              "frontend": os.environ["FRONTEND_DIGEST"],
-              "focus": os.environ["FOCUS_DIGEST"],
-              "analytics": os.environ["ANALYTICS_DIGEST"],
+          selected = {
+              "frontend": os.environ["BUILD_FRONTEND"] == "true",
+              "focus": os.environ["BUILD_FOCUS"] == "true",
+              "analytics": os.environ["BUILD_ANALYTICS"] == "true",
           }
+          digest_env = {
+              "frontend": "FRONTEND_DIGEST",
+              "focus": "FOCUS_DIGEST",
+              "analytics": "ANALYTICS_DIGEST",
+          }
+          replacements = {name: os.environ[digest_env[name]] for name, enabled in selected.items() if enabled}
+
+          if not replacements:
+              raise SystemExit("No application component was selected; refusing to create a digest PR.")
 
           def is_digest(value):
               return value.startswith("sha256:") and len(value) == 71 and all(
@@ -207,6 +292,7 @@ jobs:
           in_images = False
           current_image = None
           digest_indexes = {}
+          changed_components = set()
 
           for index, line in enumerate(lines):
               content = line.rstrip("\r\n")
@@ -226,7 +312,7 @@ jobs:
 
               if line.startswith("  ") and not line.startswith("    ") and content.endswith(":"):
                   image_name = content[2:-1]
-                  current_image = image_name if image_name in replacements else None
+                  current_image = image_name if image_name in selected else None
                   continue
 
               if current_image and line.startswith("    digest: "):
@@ -236,19 +322,33 @@ jobs:
                   if not is_digest(current_digest):
                       raise SystemExit(f"Invalid {current_image} digest field")
                   digest_indexes[current_image] = index
-                  lines[index] = f"    digest: {replacements[current_image]}\n"
+                  if selected[current_image]:
+                      new_digest = replacements[current_image]
+                      if not is_digest(new_digest):
+                          raise SystemExit(f"Invalid built digest for {current_image}")
+                      if new_digest != current_digest:
+                          lines[index] = f"    digest: {new_digest}\n"
+                          changed_components.add(current_image)
 
-          if set(digest_indexes) != set(replacements):
-              missing = sorted(set(replacements) - set(digest_indexes))
+          if set(digest_indexes) != set(selected):
+              missing = sorted(set(selected) - set(digest_indexes))
               raise SystemExit(f"Expected exactly one digest field for each image; missing: {missing}")
 
           changed_indexes = {
               index for index, (before, after) in enumerate(zip(original, lines)) if before != after
           }
-          if changed_indexes != set(digest_indexes.values()):
-              raise SystemExit("Unexpected non-digest change in environments/dev/values.yaml")
+          expected_indexes = {digest_indexes[name] for name in changed_components}
+          unselected_indexes = {
+              digest_indexes[name] for name, was_selected in selected.items() if not was_selected
+          }
+          if changed_indexes & unselected_indexes:
+              raise SystemExit("An unselected component digest was modified")
+          if changed_indexes != expected_indexes:
+              raise SystemExit("Digest update changed an unselected component or missed a changed digest")
 
           path.write_text("".join(lines))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"updated_count={len(changed_components)}\n")
           PY
 
           if git diff --quiet -- "$values_file"; then
@@ -259,7 +359,12 @@ jobs:
           diff="$(git diff --unified=0 -- "$values_file")"
           changed_lines="$(printf '%s\n' "$diff" | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' || true)"
           changed_count="$(printf '%s\n' "$changed_lines" | sed '/^$/d' | wc -l | tr -d ' ')"
-          test "$changed_count" -eq 6
+          updated_count="$(awk -F= '$1 == "updated_count" { value=$2 } END { print value }' "$GITHUB_OUTPUT")"
+          if [[ ! "$updated_count" =~ ^[0-9]+$ ]] || [[ "$updated_count" -eq 0 ]]; then
+            echo "Digest diff exists but updater did not report changed components." >&2
+            exit 1
+          fi
+          test "$changed_count" -eq "$((updated_count * 2))"
           if printf '%s\n' "$changed_lines" | grep -Ev '^[-+]    digest: sha256:[0-9a-f]+$' >/dev/null; then
             echo "Unexpected non-digest change in ${values_file}" >&2
             exit 1
