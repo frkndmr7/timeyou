@@ -41,7 +41,7 @@ export function FocusTimer({ session, onAction }: FocusTimerProps) {
 
   const elapsed = elapsedSeconds(session.started_at, now);
   return (
-    <section className="card timer-card">
+    <section className="card primary-card timer-card">
       <div>
         <p className="eyebrow">Current session</p>
         <h2>{session.topic}</h2>

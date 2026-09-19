@@ -63,26 +63,71 @@ export default function Home() {
     }
   }
 
+  if (!authenticated) {
+    return (
+      <main className="page-shell landing-shell">
+        <div className="landing-frame">
+          <header className="landing-header">
+            <div className="landing-brand">
+              <span className="landing-mark" aria-hidden="true" />
+              <span>Time&amp;You</span>
+            </div>
+          </header>
+          <section className="landing-content" aria-labelledby="landing-title">
+            <div className="landing-copy">
+              <p className="landing-eyebrow">A little more focus, every day</p>
+              <h1 id="landing-title">Make time for what matters.</h1>
+              <p className="landing-description">
+                Track your focus sessions and understand where your time goes.
+              </p>
+              <button className="landing-cta" type="button" onClick={() => void login()}>
+                Sign in
+              </button>
+            </div>
+            <div className="landing-art" aria-hidden="true">
+              <span className="landing-orbit landing-orbit-outer" />
+              <span className="landing-orbit landing-orbit-inner" />
+              <span className="landing-orbit-dot" />
+              <span className="landing-art-label">TIME, WELL SPENT</span>
+            </div>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="page-shell">
-      <h1>Time&amp;You</h1>
-      <p>Focus sessions, kept simple.</p>
-      {authenticated ? (
-        <button type="button" onClick={() => void logout()}>
-          Sign out
-        </button>
-      ) : (
-        <button type="button" onClick={() => void login()}>
-          Sign in
-        </button>
-      )}
+      <header className="app-header">
+        <div className="brand">
+          <h1>Time&amp;You</h1>
+          <p>Focus sessions, kept simple.</p>
+        </div>
+        {authenticated ? (
+          <button className="secondary auth-action" type="button" onClick={() => void logout()}>
+            Sign out
+          </button>
+        ) : (
+          <button className="auth-action" type="button" onClick={() => void login()}>
+            Sign in
+          </button>
+        )}
+      </header>
       {authenticated && (
         <div className="dashboard">
-          {error && <p className="error" role="alert">{error}</p>}
-          {analytics && <AnalyticsSummaryCard summary={analytics} />}
-          <SessionForm onCreate={create} />
-          {activeSession && <FocusTimer session={activeSession} onAction={action} />}
-          {loading ? <p className="muted">Loading sessions…</p> : <SessionHistory sessions={sessions} />}
+          {error && <p className="error error-message" role="alert">{error}</p>}
+          <div className="dashboard-primary">
+            {activeSession && <FocusTimer session={activeSession} onAction={action} />}
+            <SessionForm onCreate={create} />
+          </div>
+          <aside className="dashboard-supporting" aria-label="Session overview">
+            {analytics && <AnalyticsSummaryCard summary={analytics} />}
+            {loading ? (
+              <p className="muted loading-state" role="status">Loading sessions…</p>
+            ) : (
+              <SessionHistory sessions={sessions} />
+            )}
+          </aside>
         </div>
       )}
     </main>

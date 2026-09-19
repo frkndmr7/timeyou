@@ -33,7 +33,7 @@ export function SessionForm({ onCreate }: SessionFormProps) {
   }
 
   return (
-    <form className="card form-stack" noValidate onSubmit={submit}>
+    <form className="card primary-card form-stack" noValidate onSubmit={submit}>
       <h2>New focus session</h2>
       <label>
         Topic
