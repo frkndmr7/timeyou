@@ -15,7 +15,7 @@ ingress:
 images:
   frontend:
     repository: 109678733855.dkr.ecr.eu-west-1.amazonaws.com/timeyou-frontend
-    digest: sha256:74a3b1532f653b66cfe679c6249dcbc125f18abc44c8014c868ce9a849a0b039
+    digest: sha256:55292a7c4cf6c891e70d12824fea7d4dc294689ddd4c816cabc7fe4d20a41e32
     pullPolicy: IfNotPresent
   focus:
     repository: 109678733855.dkr.ecr.eu-west-1.amazonaws.com/timeyou-focus
