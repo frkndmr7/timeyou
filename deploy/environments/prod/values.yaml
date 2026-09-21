@@ -2,7 +2,7 @@
 namespace: timeyou-prod
 
 ingress:
-  enabled: true
+  enabled: false
   className: alb
   host: timeyou.co
   annotations:
