@@ -8,7 +8,9 @@ resource "helm_release" "argocd" {
   repository       = "https://argoproj.github.io/argo-helm"
   chart            = "argo-cd"
   version          = "10.4.2"
-  create_namespace = false
+  create_namespace = true
+
+  depends_on = [aws_eks_node_group.main]
 
   values = [yamlencode({
     dex = {

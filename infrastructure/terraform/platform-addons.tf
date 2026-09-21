@@ -11,6 +11,8 @@ resource "helm_release" "metrics_server" {
   upgrade_install  = true
   take_ownership   = true
 
+  depends_on = [aws_eks_node_group.main]
+
   values = [yamlencode({
     replicas = 1
   })]
@@ -30,16 +32,21 @@ resource "helm_release" "aws_load_balancer_controller" {
   take_ownership   = true
   skip_crds        = false
 
+  depends_on = [
+    aws_eks_node_group.main,
+    aws_iam_role_policy_attachment.aws_load_balancer_controller,
+  ]
+
   values = [yamlencode({
-    clusterName  = "timeyou-learning"
-    region       = "eu-west-1"
-    vpcId        = "vpc-0cf60a919e5ffbaa3"
+    clusterName  = aws_eks_cluster.main.name
+    region       = var.aws_region
+    vpcId        = aws_vpc.main.id
     replicaCount = 1
     serviceAccount = {
       create = true
       name   = "aws-load-balancer-controller"
       annotations = {
-        "eks.amazonaws.com/role-arn" = "arn:aws:iam::109678733855:role/timeyou-learning-aws-load-balancer-controller"
+        "eks.amazonaws.com/role-arn" = aws_iam_role.aws_load_balancer_controller.arn
       }
     }
   })]
@@ -55,6 +62,8 @@ resource "helm_release" "kube_prometheus_stack" {
   wait             = true
   recreate_pods    = false
   force_update     = false
+
+  depends_on = [aws_eks_node_group.main]
 
   values = [yamlencode({
     alertmanager = {
