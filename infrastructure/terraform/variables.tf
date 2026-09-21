@@ -54,6 +54,12 @@ variable "cluster_public_access_cidrs" {
   }
 }
 
+variable "manage_production_alias" {
+  description = "Whether Terraform should discover the production ALB and manage the timeyou.co apex alias. Disable during fresh platform bootstrap until the Argo-managed Ingress has created the ALB."
+  type        = bool
+  default     = true
+}
+
 variable "database_name" {
   description = "Initial PostgreSQL database name for Focus Service."
   type        = string
