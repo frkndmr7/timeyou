@@ -1,0 +1,19 @@
+# Example only: edit before use; do not apply this file unchanged.
+
+# Must match the AWS account you intend to manage.
+allowed_aws_account_id = "109678733855"
+
+# Replace with the operator's current public IPv4 /32 before applying.
+# 203.0.113.0/24 is a documentation-only address range.
+cluster_public_access_cidrs = ["203.0.113.10/32"]
+
+# Cognito domain prefixes are region/account scoped and must be available.
+cognito_domain_prefix = "replace-with-available-prefix"
+
+# Staged DNS bootstrap:
+# 1. Fresh bootstrap: false, so Terraform does not query for a production ALB
+#    before Argo CD has created it.
+# 2. After the production Ingress creates the ALB: change to true and apply.
+# Do not set false casually in a live environment; that plans removal of the
+# existing timeyou.co apex alias.
+manage_production_alias = false

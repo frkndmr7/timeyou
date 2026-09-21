@@ -7,32 +7,33 @@ ingress:
 
 images:
   frontend:
-    repository: 556314888256.dkr.ecr.eu-central-1.amazonaws.com/timeyou-frontend
-    tag: local-mvp
+    repository: ""
+    tag: ""
     digest: ""
     pullPolicy: IfNotPresent
   focus:
-    repository: 556314888256.dkr.ecr.eu-central-1.amazonaws.com/timeyou-focus
-    tag: local-mvp
+    repository: ""
+    tag: ""
     digest: ""
     pullPolicy: IfNotPresent
   analytics:
-    repository: 556314888256.dkr.ecr.eu-central-1.amazonaws.com/timeyou-analytics
-    tag: local-mvp
+    repository: ""
+    tag: ""
     digest: ""
     pullPolicy: IfNotPresent
 
 cognito:
-  region: eu-central-1
-  userPoolId: eu-central-1_9JNTEQ1tz
-  appClientId: 2r559a7n9pkq9vndanneal8p54
-  issuer: https://cognito-idp.eu-central-1.amazonaws.com/eu-central-1_9JNTEQ1tz
-  redirectUri: http://localhost:3001/auth/callback
-  logoutUri: http://localhost:3001
+  region: ""
+  userPoolId: ""
+  appClientId: ""
+  issuer: ""
+  redirectUri: ""
+  logoutUri: ""
+  managedLoginUrl: ""
 
 frontend:
-  apiBaseUrl: http://localhost:8000
-  analyticsApiBaseUrl: http://localhost:8001
+  apiBaseUrl: ""
+  analyticsApiBaseUrl: ""
   service:
     port: 3000
     annotations: {}
@@ -51,7 +52,7 @@ focus:
   serviceMonitor:
     enabled: false
     interval: 30s
-  corsOrigin: http://localhost:3001
+  corsOrigin: ""
   resources:
     requests:
       cpu: 100m
@@ -67,7 +68,7 @@ analytics:
   serviceMonitor:
     enabled: false
     interval: 30s
-  corsOrigin: http://localhost:3001
+  corsOrigin: ""
   resources:
     requests:
       cpu: 100m

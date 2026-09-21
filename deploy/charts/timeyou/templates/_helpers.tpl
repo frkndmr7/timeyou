@@ -18,9 +18,11 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{- define "timeyou.image" -}}
+{{- $repository := required "image repository must be supplied by environment values" .repository -}}
 {{- if .digest -}}
-{{ .repository }}@{{ .digest }}
+{{ $repository }}@{{ .digest }}
 {{- else -}}
-{{ .repository }}:{{ .tag }}
+{{ $tag := required "image digest or tag must be supplied by environment values" .tag -}}
+{{ $repository }}:{{ $tag }}
 {{- end -}}
 {{- end }}
