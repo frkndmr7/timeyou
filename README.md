@@ -1,7 +1,5 @@
 # TimeYou
 
-**Live Application:** [https://timeyou.co](https://timeyou.co)
-
 TimeYou is a containerized productivity application for tracking focused work sessions. It combines a Next.js frontend with FastAPI-based Focus and Analytics services backed by PostgreSQL. The project is also a practical cloud and DevOps implementation built around AWS, Amazon EKS, Infrastructure as Code, and GitOps.
 
 **Tech stack:** AWS · Terraform · Amazon EKS · Kubernetes · Helm · Argo CD · GitHub Actions · Amazon ECR · PostgreSQL / RDS · Amazon Cognito · Prometheus · Grafana
