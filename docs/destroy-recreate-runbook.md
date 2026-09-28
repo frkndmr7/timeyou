@@ -12,27 +12,50 @@ secret-management service, remote Terraform backend, or additional automation.
 
 ## Current ownership and important behavior
 
-- Terraform owns the VPC, EKS, node group, RDS, Cognito, ECR repositories,
-  Route 53 hosted zone, ACM certificate, Argo CD, Metrics Server, AWS Load
-  Balancer Controller, and kube-prometheus-stack.
-- Argo CD owns the TimeYou dev/staging/prod applications and their Ingresses.
+- Before teardown, Terraform owned the VPC, EKS, node group, RDS, Cognito, ECR
+  repositories, ACM, IAM/OIDC, Argo CD, Metrics Server, AWS Load Balancer
+  Controller, and kube-prometheus-stack. Argo CD owned the TimeYou
+  dev/staging/prod applications and their Ingresses.
 - The production Ingress in `deploy/environments/prod/values.yaml` creates the
   internet-facing ALB. Terraform discovers that ALB by the controller stack
   tag only when `manage_production_alias = true`.
-- The Route 53 hosted zone `aws_route53_zone.timeyou` is to survive teardown.
+- The Route 53 hosted zone was deliberately preserved outside Terraform state.
   Preserve its existing zone ID and four Namecheap-delegated name servers.
 - `helm_release.argocd.create_namespace = true` is committed for fresh
   bootstrap, but is intentionally not applied to the current live release. Do
   not apply it merely to make a plan clean.
-- `rds.skip_final_snapshot = true` and Cognito deletion protection is currently
-  `ACTIVE`. ECR repositories do not use `force_delete`.
+- `rds.skip_final_snapshot = true` and ECR repositories do not use
+  `force_delete`.
 
 Commands below assume a macOS/zsh shell and the repository layout shown. Run
 Terraform from `infrastructure/terraform`. Never print Terraform state, secret
 values, `DATABASE_URL`, credentials, or generated passwords into logs or
 terminal output.
 
-## 1. Controlled destroy
+## Current Destroyed State
+
+The controlled teardown is complete as of the latest execution:
+
+- Terraform local state contains **0 managed resources**.
+- EKS, node group, RDS, ECR repositories/images, NAT Gateway/EIP, ALB,
+  VPC/networking, Cognito, ACM, IAM roles/policies, and IAM OIDC providers
+  have been removed.
+- The EKS-created orphan security group `sg-0978f95050dbc07a3` was removed
+  separately after confirming it had no ENIs or active dependants.
+- Route 53 hosted zone `Z0172271203G492I0VTDP` remains in AWS and is no longer
+  in Terraform state. It contains only its NS and SOA records.
+- Namecheap continues delegating the domain to the same four AWS name servers.
+- `deploy/environments/prod/values.yaml` currently has
+  `ingress.enabled: false` because production Ingress was disabled for
+  teardown.
+- Timestamped Terraform state backups are retained outside the repository at:
+  `/Users/furkan/Library/Application Support/TimeYou/destroy-recreate-backups/`.
+
+The completed teardown sequence below is retained as historical evidence and
+as a safety reference. Do not rerun it against the already-destroyed account
+without first completing the recreate pre-checks.
+
+## 1. Controlled destroy (completed historical sequence)
 
 ### 1.1 Freeze and establish the exact target
 
@@ -257,24 +280,24 @@ After destroy:
 1. Check out the intended clean `main` revision and verify it before running
    Terraform. Use the repository's current provider lock file and Terraform
    version constraints.
-2. Prepare `infrastructure/terraform` and initialize the local backend. Do not
-   copy a stale pre-destroy state into the new workspace. Keep all state and
-   plan files out of Git and in private storage.
-3. Prepare a real, untracked `terraform.tfvars` from
-   `terraform.tfvars.example`. Fill required account/network/Cognito-prefix/
-   access inputs from the operator's current decisions; do not place secrets
-   in the example file. Use the current intended public API CIDR allowlist.
-4. Import the retained Route 53 hosted zone before applying the platform:
+2. Prepare `infrastructure/terraform` with a new, empty local state and
+   initialize the backend. Do not copy a stale pre-destroy state into this
+   workspace. Keep all state and plan files out of Git and in private storage.
+3. The first AWS/Terraform resource operation must be importing the preserved
+   hosted zone. Never create a second zone:
 
    ```sh
    terraform import aws_route53_zone.timeyou <PRESERVED_HOSTED_ZONE_ID>
-   terraform plan -var='manage_production_alias=false'
    ```
 
-   **Checkpoint:** the import must refer to the recorded existing zone ID and
-   the plan must preserve that zone and its existing name servers. If Terraform
-   proposes replacement or deletion, stop. Do not apply until the imported
-   zone is represented without an unintended change.
+   Use `Z0172271203G492I0VTDP` from the current destroy record. Verify that the
+   imported zone is `timeyou.co` and that its four name servers match the
+   Namecheap delegation. If Terraform cannot represent the imported zone
+   without replacement or deletion, stop; do not create a new hosted zone.
+4. Prepare a real, untracked `terraform.tfvars` from
+   `terraform.tfvars.example`. Fill required account/network/Cognito-prefix/
+   access inputs from the operator's current decisions; do not place secrets
+   in the example file. Use the current intended public API CIDR allowlist.
 5. Set `manage_production_alias = false` for first-stage bootstrap. Never use
    the example file unchanged without reviewing its other inputs.
 
@@ -318,12 +341,17 @@ Complete these manual steps without putting secret values in Git:
 2. Recreate Cognito through Terraform. Its User Pool ID, App Client ID,
    Managed Login domain/prefix, and issuer will be new. Update the relevant
    environment values with the new non-secret identifiers and callback/logout
-   allowlists. Keep localhost URLs only if still required and explicitly
-   allowlisted. Validate rendered runtime config before application sync.
+   allowlists. The production callback/logout origin must use
+   `https://eks.timeyou.co` (for example,
+   `https://eks.timeyou.co/auth/callback` and `https://eks.timeyou.co`);
+   preserve localhost URLs only if still required and explicitly allowlisted.
+   Update the issuer, Managed Login URL, client ID, and runtime API origins
+   together, then validate rendered runtime config before application sync.
 3. Recreate the ACM certificate through Terraform. After it is issued, copy
    the new certificate ARN into the production Ingress annotation in
    `deploy/environments/prod/values.yaml` and merge that reviewed GitOps
-   change. The old ARN is not reusable.
+   change. The certificate must cover `eks.timeyou.co`; the old apex
+   certificate ARN is not reusable as a production target.
 4. Apply the Argo Application manifests from `deploy/argocd` using the
    documented bootstrap process, after `timeyou-repo` credentials are
    available. Manually sync dev first, then staging and prod in order. Verify
@@ -331,21 +359,44 @@ Complete these manual steps without putting secret values in Git:
    the next.
 5. Keep the production Ingress disabled or otherwise absent until its image,
    runtime Secret, database, Cognito values, and ACM certificate are ready.
-   Enable/sync the production Ingress and wait for the controller-created ALB
-   to become active with healthy target groups and HTTPS listener.
+   Its host must be `eks.timeyou.co`; do not reintroduce `timeyou.co` as the
+   application host. Enable/sync the production Ingress through GitOps and
+   wait for the controller-created ALB to become active with healthy target
+   groups and HTTPS listener.
 
-### 2.5 Re-enable apex DNS in the second stage
+### 2.5 Publish the production EKS hostname in the second stage
 
-Only after the production Ingress has created a healthy ALB:
+The apex `timeyou.co` is intentionally not the future TimeYou application
+hostname. It remains available for another project. The future public flow is:
+
+`eks.timeyou.co → Route 53 → production ALB → timeyou-prod`
+
+Before this second stage, make a reviewed Terraform/GitOps configuration change
+that uses `eks.timeyou.co` consistently:
+
+- request/validate an ACM certificate for `eks.timeyou.co` in `eu-west-1`;
+- publish its DNS validation record in the preserved `timeyou.co` hosted zone;
+- set the production Ingress host to `eks.timeyou.co` and use the new ACM ARN;
+- manage an alias record named `eks.timeyou.co` pointing to the controller-created
+  production ALB.
+
+Do not reuse the old `timeyou.co` apex Alias or point the apex at the new ALB.
+The existing staged ALB-discovery gate may be used for the subdomain record,
+but its record name must be explicitly reviewed before apply.
+
+Only after the production Ingress has created a healthy ALB and the new
+certificate is issued:
 
 1. Change `manage_production_alias` to `true` in the reviewed local Terraform
    input/configuration used for this environment.
 2. Run a normal Terraform plan. Confirm it discovers the intended production
    ALB by the `timeyou-prod/timeyou` stack tag and proposes only the intended
-   apex Alias creation (plus no unexpected infrastructure changes).
-3. Apply the reviewed plan and verify `timeyou.co` resolves to the ALB, HTTPS
-   uses the new valid certificate, HTTP redirects to HTTPS, and frontend,
-   Focus health, and expected Analytics authentication behavior work publicly.
+   `eks.timeyou.co` Alias creation (plus no unexpected infrastructure
+   changes).
+3. Apply the reviewed plan and verify `eks.timeyou.co` resolves to the ALB,
+   HTTPS uses the new valid certificate, HTTP redirects to HTTPS, and
+   frontend, Focus health, and expected Analytics authentication behavior work
+   publicly. Confirm that the apex `timeyou.co` remains untouched.
 
 ## Expected intentional data loss
 
@@ -362,7 +413,8 @@ Only after the production Ingress has created a healthy ALB:
 ## What survives destroy
 
 - The Route 53 public hosted zone, its zone ID, and its four authoritative name
-  servers remain in AWS and continue to be delegated from Namecheap.
+  servers remain in AWS and continue to be delegated from Namecheap. The zone
+  is imported into the new Terraform state before any infrastructure bootstrap.
 - The Namecheap domain registration and nameserver delegation remain unchanged.
 - Secure local Terraform state backups and the final post-destroy state record
   remain under operator control.
@@ -375,5 +427,6 @@ Only after the production Ingress has created a healthy ALB:
 - `timeyou_staging` and `timeyou_prod` databases and any required grants.
 - GitHub Actions external settings if required by the new repository/ECR
   resources.
-- Environment values for recreated Cognito identifiers and the new ACM
-  certificate ARN, through reviewed Git changes.
+- Environment values for recreated Cognito identifiers, the new
+  `eks.timeyou.co` hostname, and the new ACM certificate ARN, through reviewed
+  Git changes.
